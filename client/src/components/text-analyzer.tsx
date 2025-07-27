@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,7 +59,7 @@ export function TextAnalyzer({ onAnalysisComplete }: TextAnalyzerProps) {
   };
 
   // Real-time analysis with debouncing
-  useState(() => {
+  useEffect(() => {
     if (!realTimeAnalysis || !content.trim()) return;
     
     const timeoutId = setTimeout(() => {
@@ -69,7 +69,7 @@ export function TextAnalyzer({ onAnalysisComplete }: TextAnalyzerProps) {
     }, 1000);
 
     return () => clearTimeout(timeoutId);
-  });
+  }, [content, realTimeAnalysis, analyzeMutation]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
