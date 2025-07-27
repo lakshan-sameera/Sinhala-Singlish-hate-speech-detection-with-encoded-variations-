@@ -26,10 +26,11 @@ The backend follows a RESTful API pattern using Express.js:
 - **Development**: Vite integration for SSR and HMR in development
 
 ### Data Storage
-The application uses a dual storage approach:
-- **Primary Database**: PostgreSQL with Drizzle ORM for production data persistence
-- **Development Storage**: In-memory storage class for development and testing
-- **Schema**: Type-safe database schema definitions using Drizzle and Zod
+The application uses PostgreSQL database with Drizzle ORM:
+- **Production Database**: PostgreSQL with Drizzle ORM for data persistence
+- **Database Provider**: Neon serverless PostgreSQL 
+- **Schema Management**: Type-safe database schema definitions using Drizzle and Zod
+- **ORM Features**: Full CRUD operations, relations, and migrations
 
 ## Key Components
 

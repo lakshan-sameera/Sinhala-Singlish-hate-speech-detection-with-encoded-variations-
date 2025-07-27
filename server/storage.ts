@@ -5,8 +5,14 @@ import {
   type InsertContentAnalysis,
   type ModerationQueue,
   type InsertModerationQueue,
-  type SystemStats
+  type SystemStats,
+  users,
+  contentAnalysis,
+  moderationQueue,
+  systemStats
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -487,4 +493,211 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  private mlModel: SinhalaHateSpeechModel;
+
+  constructor() {
+    this.mlModel = new SinhalaHateSpeechModel();
+    this.initializeDefaults();
+  }
+
+  private async initializeDefaults() {
+    // Create default admin user if not exists
+    const existingAdmin = await this.getUserByUsername("admin");
+    if (!existingAdmin) {
+      await this.createUser({
+        username: "admin",
+        password: "admin123",
+        role: "admin"
+      });
+    }
+
+    // Initialize system stats if not exists
+    const existingStats = await this.getSystemStats();
+    if (!existingStats) {
+      await db.insert(systemStats).values({
+        totalAnalyzed: 24847,
+        hateDetected: 1234,
+        autoHidden: 892,
+        accuracyRate: 94.7,
+      });
+    }
+  }
+
+  // ML Analysis method that uses the comprehensive model
+  private analyzeContentWithMLModels(content: string): { hateScore: number; harassmentScore: number; normalScore: number; confidenceScore: number } {
+    return this.mlModel.analyze(content);
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createContentAnalysis(analysis: InsertContentAnalysis): Promise<ContentAnalysis> {
+    // Advanced ML model simulation with Sinhala/Singlish hate speech patterns
+    const analysisResult = this.analyzeContentWithMLModels(analysis.content);
+    
+    const hateScore = analysisResult.hateScore;
+    const harassmentScore = analysisResult.harassmentScore;
+    const normalScore = analysisResult.normalScore;
+    const confidenceScore = analysisResult.confidenceScore;
+    
+    let classification = "safe";
+    if (hateScore > 0.6) {
+      classification = "hate_speech";
+    } else if (hateScore > 0.4 || harassmentScore > 0.5) {
+      classification = "flagged";
+    }
+    
+    const isAutoHidden = classification === "hate_speech" && confidenceScore > 0.8;
+    
+    const [contentAnalysisRecord] = await db
+      .insert(contentAnalysis)
+      .values({
+        ...analysis,
+        classification,
+        confidenceScore: confidenceScore * 100,
+        hateScore: hateScore * 100,
+        harassmentScore: harassmentScore * 100,
+        normalScore: normalScore * 100,
+        isAutoHidden,
+        isManuallyReviewed: false,
+        reviewStatus: classification === "flagged" ? "pending" : null,
+        reviewedBy: null,
+      })
+      .returning();
+    
+    // Update system stats
+    const currentStats = await this.getSystemStats();
+    if (currentStats) {
+      await db
+        .update(systemStats)
+        .set({
+          totalAnalyzed: currentStats.totalAnalyzed + 1,
+          hateDetected: currentStats.hateDetected + (classification === "hate_speech" || classification === "flagged" ? 1 : 0),
+          autoHidden: currentStats.autoHidden + (isAutoHidden ? 1 : 0),
+        })
+        .where(eq(systemStats.id, currentStats.id));
+    }
+    
+    // Add to moderation queue if flagged
+    if (classification === "flagged" || (classification === "hate_speech" && confidenceScore > 0.7)) {
+      await this.createModerationQueueItem({
+        contentId: contentAnalysisRecord.id,
+        priority: classification === "hate_speech" ? "high" : "medium",
+      });
+    }
+    
+    return contentAnalysisRecord;
+  }
+
+  async getContentAnalysis(id: string): Promise<ContentAnalysis | undefined> {
+    const [analysis] = await db.select().from(contentAnalysis).where(eq(contentAnalysis.id, id));
+    return analysis || undefined;
+  }
+
+  async getAllContentAnalysis(): Promise<ContentAnalysis[]> {
+    return await db
+      .select()
+      .from(contentAnalysis)
+      .orderBy(desc(contentAnalysis.createdAt))
+      .limit(10);
+  }
+
+  async updateContentAnalysis(id: string, updates: Partial<ContentAnalysis>): Promise<ContentAnalysis> {
+    const [updated] = await db
+      .update(contentAnalysis)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(contentAnalysis.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Content analysis not found");
+    }
+    
+    return updated;
+  }
+
+  async createModerationQueueItem(item: InsertModerationQueue): Promise<ModerationQueue> {
+    const [queueItem] = await db
+      .insert(moderationQueue)
+      .values(item)
+      .returning();
+    return queueItem;
+  }
+
+  async getModerationQueue(): Promise<ModerationQueue[]> {
+    return await db
+      .select()
+      .from(moderationQueue)
+      .where(eq(moderationQueue.status, "pending"))
+      .orderBy(desc(moderationQueue.createdAt));
+  }
+
+  async updateModerationQueueItem(id: string, updates: Partial<ModerationQueue>): Promise<ModerationQueue> {
+    const [updated] = await db
+      .update(moderationQueue)
+      .set(updates)
+      .where(eq(moderationQueue.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Moderation queue item not found");
+    }
+    
+    return updated;
+  }
+
+  async removeModerationQueueItem(id: string): Promise<void> {
+    await db.delete(moderationQueue).where(eq(moderationQueue.id, id));
+  }
+
+  async getSystemStats(): Promise<SystemStats> {
+    const [stats] = await db.select().from(systemStats).orderBy(desc(systemStats.date)).limit(1);
+    
+    if (!stats) {
+      // Create initial stats if none exist
+      const [newStats] = await db
+        .insert(systemStats)
+        .values({
+          totalAnalyzed: 0,
+          hateDetected: 0,
+          autoHidden: 0,
+          accuracyRate: 0,
+        })
+        .returning();
+      return newStats;
+    }
+    
+    return stats;
+  }
+
+  async updateSystemStats(statsUpdate: Partial<SystemStats>): Promise<SystemStats> {
+    const currentStats = await this.getSystemStats();
+    
+    const [updated] = await db
+      .update(systemStats)
+      .set({ ...statsUpdate, date: new Date() })
+      .where(eq(systemStats.id, currentStats.id))
+      .returning();
+    
+    return updated;
+  }
+}
+
+export const storage = new DatabaseStorage();
