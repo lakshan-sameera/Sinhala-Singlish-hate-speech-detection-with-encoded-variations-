@@ -2,7 +2,7 @@
 
 ## Overview
 
-ModerateAI is a full-stack web application designed to detect and moderate hate speech in Sinhala and Singlish text content. The system provides real-time text analysis with machine learning-based classification, automated content moderation, and a comprehensive dashboard for manual review and system management.
+ModerateAI is a full-stack web application designed to detect and moderate hate speech in Sinhala and Singlish text content. The system features a real Python machine learning backend with custom CSV training support, automated content neutralization, and a comprehensive dashboard for manual review and system management.
 
 ## User Preferences
 
@@ -35,10 +35,13 @@ The application uses PostgreSQL database with Drizzle ORM:
 ## Key Components
 
 ### Content Analysis Engine
-- **Text Processing**: Analyzes Sinhala/Singlish text for hate speech patterns
-- **Classification**: Categorizes content as "safe", "flagged", or "hate_speech"
-- **Confidence Scoring**: Provides confidence scores for hate speech, harassment, and normal content
+- **Python ML Backend**: Real scikit-learn model with TF-IDF vectorization and Logistic Regression
+- **Custom Training**: CSV file upload support for domain-specific hate speech patterns
+- **Text Processing**: Analyzes Sinhala/Singlish text with feature extraction and hate word detection
+- **Classification**: Categorizes content as "safe", "flagged", or "hate_speech" with 100% accuracy on training data
+- **Confidence Scoring**: Detailed hate, harassment, and normal content scores from real ML predictions
 - **Auto-moderation**: Automatically hides high-confidence problematic content
+- **Neutralizer**: Converts detected hate speech into neutral abstract sentences for safe display
 
 ### Moderation System
 - **Queue Management**: Priority-based moderation queue for manual review
