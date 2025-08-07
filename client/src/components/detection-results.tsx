@@ -135,6 +135,103 @@ export function DetectionResults({ analysis }: DetectionResultsProps) {
           </div>
         </div>
         
+                    {/* Intelligent Word Detection Analysis */}
+            {(analysis as any).analysis && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-slate-700">🧠 Intelligent Word Detection</h4>
+                
+                {/* LSTM Intelligence */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">LSTM Intelligence</span>
+                    <span className="text-sm font-medium text-blue-600">
+                      {((analysis as any).analysis.lstm_contribution * 100 || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Context Analysis</span>
+                    <span className="text-sm font-medium text-purple-600">
+                      {((analysis as any).analysis.fuzzy_confidence * 100 || 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Language Detected</span>
+                    <span className="text-sm font-medium text-green-600 capitalize">
+                      {(analysis as any).analysis.language_detected || 'unknown'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Intelligent Word Detection Results */}
+                {(analysis as any).analysis.hate_words_found && (analysis as any).analysis.hate_words_found.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-slate-600">🎯 Intelligently Detected Words</h5>
+                    <div className="space-y-1">
+                      {(analysis as any).analysis.hate_words_found.map((wordInfo: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-slate-50 rounded">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">
+                              {wordInfo.word}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {wordInfo.match_type === 'intelligent' ? '🧠 AI Detected' : 
+                               wordInfo.match_type === 'exact' ? '📝 Exact Match' : '🔍 Pattern Match'}
+                            </span>
+                          </div>
+                          <span className="text-xs font-medium text-slate-600">
+                            {(wordInfo.similarity * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* No Words Detected - Show LSTM Intelligence */}
+                {(!(analysis as any).analysis.hate_words_found || (analysis as any).analysis.hate_words_found.length === 0) && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-slate-600">🧠 LSTM Intelligence</h5>
+                    <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-xs text-blue-800">
+                        No specific hate words detected, but LSTM model identified patterns suggesting hate speech with {((analysis as any).analysis.lstm_contribution * 100 || 0).toFixed(1)}% confidence.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Detection Method */}
+                <div className="space-y-2">
+                  <h5 className="text-xs font-medium text-slate-600">🔍 Detection Method</h5>
+                  <div className="p-2 bg-slate-50 rounded">
+                    <p className="text-xs text-slate-700">
+                      {(analysis as any).analysis.detection_method || 'LSTM-First Intelligent Analysis'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+        
+        {/* Original ML Model Probabilities */}
+        {(analysis as any).probabilities && (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-slate-700">LSTM Probabilities</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">NOT (Safe)</span>
+                <span className="text-sm font-medium text-success">
+                  {((analysis as any).probabilities.NOT * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">OFF (Hate)</span>
+                <span className="text-sm font-medium text-danger">
+                  {((analysis as any).probabilities.OFF * 100).toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="pt-4 border-t border-slate-200">
           <div className="flex space-x-2">
             <Button

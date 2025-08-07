@@ -1,0 +1,9 @@
+{
+  "max_words": 20000,
+  "max_len": 150,
+  "vocab_size": 24676,
+  "embedding_dim": 300,
+  "model_type": "Singlish_LSTM",
+  "training_date": "2025-08-04T11:16:34.054057",
+  "hate_words_count": 2177
+}

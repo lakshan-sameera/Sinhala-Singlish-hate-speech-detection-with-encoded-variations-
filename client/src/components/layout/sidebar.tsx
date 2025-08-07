@@ -15,6 +15,17 @@ export function Sidebar() {
     refetchInterval: 10000,
   });
 
+  // Real-time model status from ML backend
+  const { data: mlHealth } = useQuery({
+    queryKey: ["/api/ml/health"],
+    refetchInterval: 10000,
+  });
+
+  const { data: modelStatus } = useQuery({
+    queryKey: ["/api/ml/models/status"],
+    refetchInterval: 15000,
+  });
+
   const pendingCount = moderationQueue?.length || 0;
 
   const navItems = [
@@ -29,6 +40,24 @@ export function Sidebar() {
     { path: "/analytics", icon: BarChart3, label: "Analytics" },
     { path: "/settings", icon: Settings, label: "Settings" },
   ];
+
+  // Get model status indicators
+  const getModelStatus = (modelName: string) => {
+    if (!modelStatus?.models) return { status: 'unknown', color: 'bg-slate-400' };
+    
+    const status = modelStatus.models[modelName];
+    switch (status) {
+      case 'online':
+        return { status: 'Online', color: 'bg-success' };
+      case 'error':
+        return { status: 'Error', color: 'bg-danger' };
+      default:
+        return { status: 'Unknown', color: 'bg-slate-400' };
+    }
+  };
+
+  const mbertStatus = getModelStatus('logistic_regression');
+  const lstmStatus = getModelStatus('random_forest');
 
   return (
     <aside className="w-64 bg-white shadow-sm border-r border-slate-200 fixed h-full z-10">
@@ -82,18 +111,35 @@ export function Sidebar() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-600">mBERT</span>
                 <div className="flex items-center">
-                  <div className="w-2 h-2 bg-success rounded-full mr-2"></div>
-                  <span className="text-xs text-slate-500">Online</span>
+                  <div className={`w-2 h-2 ${mbertStatus.color} rounded-full mr-2`}></div>
+                  <span className="text-xs text-slate-500">{mbertStatus.status}</span>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-600">LSTM</span>
                 <div className="flex items-center">
-                  <div className="w-2 h-2 bg-warning rounded-full mr-2"></div>
-                  <span className="text-xs text-slate-500">Training</span>
+                  <div className={`w-2 h-2 ${lstmStatus.color} rounded-full mr-2`}></div>
+                  <span className="text-xs text-slate-500">{lstmStatus.status}</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">ML Backend</span>
+                <div className="flex items-center">
+                  <div className={`w-2 h-2 ${mlHealth?.status === 'healthy' ? 'bg-success' : 'bg-danger'} rounded-full mr-2`}></div>
+                  <span className="text-xs text-slate-500">
+                    {mlHealth?.status === 'healthy' ? 'Connected' : 'Disconnected'}
+                  </span>
                 </div>
               </div>
             </div>
+            
+            {modelStatus && (
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <div className="text-xs text-slate-500">
+                  {modelStatus.online_models}/{modelStatus.total_models} models online
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </nav>

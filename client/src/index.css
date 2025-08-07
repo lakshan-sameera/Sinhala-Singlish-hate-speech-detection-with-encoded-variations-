@@ -1,130 +1,246 @@
+/* Sinhala Font Support */
+@import url('https://fonts.googleapis.com/css2?family=Iskoola+Pota:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
 :root {
-  --background: hsl(0, 0%, 100%);
-  --foreground: hsl(20, 14.3%, 4.1%);
-  --muted: hsl(60, 4.8%, 95.9%);
-  --muted-foreground: hsl(25, 5.3%, 44.7%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(20, 14.3%, 4.1%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(20, 14.3%, 4.1%);
-  --border: hsl(20, 5.9%, 90%);
-  --input: hsl(20, 5.9%, 90%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(60, 4.8%, 95.9%);
-  --secondary-foreground: hsl(24, 9.8%, 10%);
-  --accent: hsl(60, 4.8%, 95.9%);
-  --accent-foreground: hsl(24, 9.8%, 10%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --ring: hsl(20, 14.3%, 4.1%);
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
   --radius: 0.5rem;
-  
-  /* Custom colors matching design */
-  --slate-50: hsl(210, 40%, 98%);
-  --slate-100: hsl(210, 40%, 96%);
-  --slate-200: hsl(214, 32%, 91%);
-  --slate-500: hsl(218, 11%, 65%);
-  --slate-600: hsl(215, 16%, 47%);
-  --slate-700: hsl(215, 19%, 35%);
-  --slate-900: hsl(215, 28%, 17%);
-  --success: hsl(142, 76%, 36%);
-  --warning: hsl(32, 95%, 44%);
-  --danger: hsl(0, 72%, 51%);
+    --success: 142.1 76.2% 36.3%;
+    --success-foreground: 355.7 100% 97.3%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --danger: 0 84.2% 60.2%;
+    --danger-foreground: 210 40% 98%;
 }
 
 .dark {
-  --background: hsl(240, 10%, 3.9%);
-  --foreground: hsl(0, 0%, 98%);
-  --muted: hsl(240, 3.7%, 15.9%);
-  --muted-foreground: hsl(240, 5%, 64.9%);
-  --popover: hsl(240, 10%, 3.9%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --card: hsl(240, 10%, 3.9%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --border: hsl(240, 3.7%, 15.9%);
-  --input: hsl(240, 3.7%, 15.9%);
-  --primary: hsl(207, 90%, 54%);
-  --primary-foreground: hsl(211, 100%, 99%);
-  --secondary: hsl(240, 3.7%, 15.9%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --accent: hsl(240, 3.7%, 15.9%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --ring: hsl(240, 4.9%, 83.9%);
-  --radius: 0.5rem;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    --success: 142.1 70.6% 45.3%;
+    --success-foreground: 144.9 80.4% 10%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    --danger: 0 62.8% 30.6%;
+    --danger-foreground: 210 40% 98%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply font-sans antialiased bg-slate-50 text-foreground;
-    font-family: 'Inter', sans-serif;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-@layer utilities {
-  .text-slate-500 {
-    color: hsl(218, 11%, 65%);
+/* Sinhala Font Classes */
+.font-sinhala {
+  font-family: 'Iskoola Pota', 'Arial Unicode MS', 'Noto Sans Sinhala', sans-serif;
+}
+
+.font-sinhala-bold {
+  font-family: 'Iskoola Pota', 'Arial Unicode MS', 'Noto Sans Sinhala', sans-serif;
+  font-weight: 700;
+}
+
+/* Sinhala Text Rendering Improvements */
+.sinhala-text {
+  font-family: 'Iskoola Pota', 'Arial Unicode MS', 'Noto Sans Sinhala', sans-serif;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Unicode Range for Sinhala Characters */
+.sinhala-unicode {
+  unicode-range: U+0D80-0DFF;
+}
+
+/* Loading Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Focus States */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+/* Button States */
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2;
+}
+
+.btn-destructive {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
+}
+
+/* Card Styles */
+.card {
+  @apply bg-white text-gray-900 border border-gray-200 rounded-lg shadow-sm;
+}
+
+.card-header {
+  @apply p-6 pb-0;
+}
+
+.card-content {
+  @apply p-6 pt-0;
+}
+
+/* Badge Styles */
+.badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Status Indicators */
+.status-online {
+  @apply bg-green-500;
+}
+
+.status-offline {
+  @apply bg-gray-500;
+}
+
+.status-error {
+  @apply bg-red-500;
+}
+
+.status-warning {
+  @apply bg-yellow-500;
+}
+
+/* Responsive Text */
+@media (max-width: 640px) {
+  .text-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+@media (min-width: 641px) {
+  .text-responsive {
+    font-size: 1rem;
+  }
+}
+
+/* Sinhala Text Responsive */
+@media (max-width: 640px) {
+  .sinhala-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .card {
+    border-width: 2px;
   }
   
-  .text-slate-600 {
-    color: hsl(215, 16%, 47%);
+  .btn-primary {
+    border: 2px solid currentColor;
   }
-  
-  .text-slate-700 {
-    color: hsl(215, 19%, 35%);
-  }
-  
-  .text-slate-900 {
-    color: hsl(215, 28%, 17%);
-  }
-  
-  .bg-slate-50 {
-    background-color: hsl(210, 40%, 98%);
-  }
-  
-  .bg-slate-100 {
-    background-color: hsl(210, 40%, 96%);
-  }
-  
-  .bg-slate-200 {
-    background-color: hsl(214, 32%, 91%);
-  }
-  
-  .border-slate-200 {
-    border-color: hsl(214, 32%, 91%);
-  }
-  
-  .text-success {
-    color: hsl(142, 76%, 36%);
-  }
-  
-  .text-warning {
-    color: hsl(32, 95%, 44%);
-  }
-  
-  .text-danger {
-    color: hsl(0, 72%, 51%);
-  }
-  
-  .bg-success {
-    background-color: hsl(142, 76%, 36%);
-  }
-  
-  .bg-warning {
-    background-color: hsl(32, 95%, 44%);
-  }
-  
-  .bg-danger {
-    background-color: hsl(0, 72%, 51%);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
   }
 }

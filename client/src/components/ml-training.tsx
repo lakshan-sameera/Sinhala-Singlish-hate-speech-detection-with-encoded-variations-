@@ -14,6 +14,7 @@ interface TrainingResult {
   success: boolean;
   accuracy?: number;
   training_samples?: number;
+  test_samples?: number;
   hate_words_loaded?: number;
   error?: string;
 }
@@ -67,12 +68,20 @@ export function MLTrainingComponent() {
     setTrainingResult(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
+      // Read the file content
+      const fileContent = await selectedFile.text();
+      
+      // Send the file content as JSON
       const response = await fetch('/api/ml/train', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'train_with_uploaded_data',
+          filename: selectedFile.name,
+          content: fileContent
+        }),
       });
 
       if (!response.ok) {
@@ -105,23 +114,6 @@ export function MLTrainingComponent() {
     } finally {
       setIsTraining(false);
     }
-  };
-
-  const downloadSampleCSV = () => {
-    const csvContent = `text,label,hate_words
-"ගොන් බල්ලා stupid",1,"ගොන්,බල්ලා,stupid"
-"හරිම ලස්සනයි beautiful",0,""
-"මූ පිස්සා crazy idiot",1,"මූ,පිස්සා,crazy,idiot"
-"ගොඩක් ස්තූතියි thank you",0,""
-"හුත්ත පලයන් f*ck off",1,"හුත්ත,පලයන්"`;
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'sample_training_data.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
   };
 
   return (
@@ -169,39 +161,47 @@ export function MLTrainingComponent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Upload className="h-5 w-5" />
-            Train Custom Model
+            Train Model
           </CardTitle>
           <CardDescription>
-            Upload a CSV file with Sinhala/Singlish hate speech data to train the detection model
+            Upload a CSV file or use the existing dataset to train the detection model
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* CSV Format Information */}
-          <Alert>
-            <FileText className="h-4 w-4" />
-            <AlertDescription>
-              <strong>CSV Format Required:</strong>
-              <br />
-              • <code>text</code>: The content to analyze (Sinhala/Singlish)
-              <br />
-              • <code>label</code>: 0 for normal, 1 for hate speech
-              <br />
-              • <code>hate_words</code>: Comma-separated hate words (optional)
-              <br />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={downloadSampleCSV}
-                className="mt-2"
-              >
-                Download Sample CSV
-              </Button>
-            </AlertDescription>
-          </Alert>
+          {/* Dataset Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Existing Dataset Option */}
+            <Alert>
+              <FileText className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Use Existing Dataset:</strong>
+                <br />
+                • Dataset: <code>DataSets/sinhala-hate-speech-dataset.csv</code>
+                <br />
+                • Contains: 6,345 Sinhala/Singlish comments
+                <br />
+                • Ready to use immediately
+              </AlertDescription>
+            </Alert>
+
+            {/* Upload Option */}
+            <Alert>
+              <Upload className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Upload Your Own Dataset:</strong>
+                <br />
+                • Format: CSV with text, label columns
+                <br />
+                • Label: 0 for normal, 1 for hate speech
+                <br />
+                • Supports Sinhala/English/Singlish
+              </AlertDescription>
+            </Alert>
+          </div>
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="training-file">Select Training Data CSV</Label>
+            <Label htmlFor="training-file">Upload Custom Training Data (Optional)</Label>
             <Input
               id="training-file"
               type="file"
@@ -221,11 +221,16 @@ export function MLTrainingComponent() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-                <span>Training model with your data...</span>
+                <span>
+                  {selectedFile 
+                    ? `Training model with uploaded dataset: ${selectedFile.name}...`
+                    : "Training model with existing dataset..."
+                  }
+                </span>
               </div>
               <Progress value={50} className="w-full" />
               <p className="text-xs text-muted-foreground">
-                This may take a few minutes depending on your dataset size
+                This may take a few minutes. Processing with Unicode support.
               </p>
             </div>
           )}
@@ -246,8 +251,14 @@ export function MLTrainingComponent() {
                     • Accuracy: {((trainingResult.accuracy || 0) * 100).toFixed(1)}%
                     <br />
                     • Training samples: {trainingResult.training_samples}
+                    {trainingResult.test_samples && (
+                      <>
+                        <br />
+                        • Test samples: {trainingResult.test_samples}
+                      </>
+                    )}
                     <br />
-                    • Hate words loaded: {trainingResult.hate_words_loaded}
+                    • Models trained: 4 (including ensemble)
                   </div>
                 ) : (
                   <div>
@@ -260,24 +271,40 @@ export function MLTrainingComponent() {
             </Alert>
           )}
 
-          {/* Train Button */}
-          <Button
-            onClick={handleTraining}
-            disabled={!selectedFile || isTraining || mlHealth?.status !== 'healthy'}
-            className="w-full"
-          >
-            {isTraining ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Training Model...
-              </>
-            ) : (
-              <>
-                <Brain className="h-4 w-4 mr-2" />
-                Train Model
-              </>
+          {/* Train Buttons */}
+          <div className="space-y-2">
+            <Button
+              onClick={handleTraining}
+              disabled={isTraining || mlHealth?.status !== 'healthy'}
+              className="w-full"
+            >
+              {isTraining ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Training Model...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-4 w-4 mr-2" />
+                  {selectedFile ? 'Train with Uploaded Dataset' : 'Train with Existing Dataset'}
+                </>
+              )}
+            </Button>
+
+            {selectedFile && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedFile(null);
+                  setTrainingResult(null);
+                }}
+                disabled={isTraining}
+                className="w-full"
+              >
+                Use Existing Dataset Instead
+              </Button>
             )}
-          </Button>
+          </div>
 
           {mlHealth?.status !== 'healthy' && (
             <p className="text-xs text-muted-foreground text-center">

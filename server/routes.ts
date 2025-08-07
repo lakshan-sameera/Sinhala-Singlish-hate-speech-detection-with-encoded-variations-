@@ -6,66 +6,104 @@ import { insertContentAnalysisSchema } from "@shared/schema";
 // ML Backend Integration
 async function callMLBackend(content: string) {
   try {
-    const response = await fetch('http://localhost:5001/analyze', {
+    const response = await fetch('http://localhost:5003/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ text: content }),
     });
     
     if (!response.ok) {
       throw new Error(`ML Backend error: ${response.status}`);
     }
     
-    return await response.json();
+    const result = await response.json();
+    
+    // Check if ML backend returned an error
+    if (result.error) {
+      throw new Error(`ML Backend error: ${result.error}`);
+    }
+    
+    // Map our enhanced ML backend response to the expected format
+    const prediction = result.prediction; // 'NOT' or 'OFF'
+    const confidence = result.confidence;
+    const probabilities = result.probabilities;
+    const analysis = result.analysis;
+    
+    // Enhanced classification logic using both LSTM and fuzzy matching
+    let classification = 'safe';
+    let hateScore = 0;
+    let harassmentScore = 0;
+    let normalScore = 0;
+    
+    // Calculate hate score from analysis
+    hateScore = (analysis.hate_score || 0) * 100;
+    
+    // Enhanced decision logic combining LSTM and fuzzy matching
+    const lstm_contribution = analysis.lstm_contribution || 0;
+    const fuzzy_confidence = analysis.fuzzy_confidence || 0;
+    const hate_words_detected = analysis.hate_words_found && analysis.hate_words_found.length > 0;
+    
+    if (prediction === 'OFF') {
+      // LSTM detected hate speech
+      if (hate_words_detected && fuzzy_confidence > 0.7) {
+        classification = 'hate_speech';
+        harassmentScore = Math.max(confidence * 90, fuzzy_confidence * 100);
+      } else {
+        classification = 'flagged';
+        harassmentScore = confidence * 80;
+      }
+      normalScore = (1 - confidence) * 100;
+    } else if (prediction === 'NOT') {
+      // LSTM says safe, but check fuzzy matching
+      if (hate_words_detected && fuzzy_confidence > 0.8) {
+        classification = 'flagged'; // High confidence fuzzy match overrides LSTM
+        harassmentScore = fuzzy_confidence * 70;
+        normalScore = (1 - fuzzy_confidence) * 100;
+      } else if (hate_words_detected && fuzzy_confidence > 0.6) {
+        classification = 'flagged'; // Medium confidence fuzzy match
+        harassmentScore = fuzzy_confidence * 60;
+        normalScore = (1 - fuzzy_confidence) * 100;
+      } else {
+        classification = 'safe';
+        harassmentScore = (1 - confidence) * 100;
+        normalScore = confidence * 100;
+      }
+    } else {
+      // Fallback for unknown predictions
+      classification = 'flagged';
+      harassmentScore = confidence * 100;
+      normalScore = (1 - confidence) * 100;
+    }
+    
+    return {
+      classification,
+      hateScore: Math.round(hateScore),
+      harassmentScore: Math.round(harassmentScore),
+      normalScore: Math.round(normalScore),
+      confidenceScore: Math.round(confidence * 100),
+      isHateSpeech: classification === 'hate_speech',
+      neutralizedText: classification !== 'safe' ? `[Content flagged as ${classification}]` : content,
+      probabilities,
+      analysis: {
+        hateScore: analysis.hate_score || 0,
+        hateWordsFound: analysis.hate_words_found || [],
+        hateWordCount: analysis.hate_word_count || 0,
+        sinhalaRatio: analysis.sinhala_ratio || 0,
+        hasObfuscation: analysis.has_obfuscation || false,
+        obfuscationScore: analysis.obfuscation_score || 0,
+        modelsUsed: {
+          lstm: analysis.models_used?.lstm || false,
+          mbert: analysis.models_used?.mbert || false,
+          academic_preprocessing: analysis.models_used?.academic_preprocessing || false
+        }
+      }
+    };
   } catch (error) {
     console.error('ML Backend connection failed:', error);
-    // Fallback to simulation if ML backend is not available
-    return simulateMLAnalysis(content);
+    throw new Error('ML Backend service unavailable');
   }
-}
-
-function simulateMLAnalysis(content: string) {
-  const words = content.toLowerCase().split(/\s+/);
-  const sinhalaHateWords = ['මූ', 'ගොන්', 'බල්ලා', 'හුත්ත', 'පිස්සා', 'වේසි'];
-  const englishHateWords = ['stupid', 'idiot', 'hate', 'kill', 'die', 'damn', 'bitch', 'fuck'];
-  
-  let hateScore = 0;
-  let harassmentScore = 0;
-  
-  words.forEach(word => {
-    if (sinhalaHateWords.includes(word) || englishHateWords.includes(word)) {
-      hateScore += 25;
-      harassmentScore += 10;
-    }
-  });
-  
-  // Add randomization for more realistic scores
-  hateScore = Math.min(hateScore + Math.random() * 20, 100);
-  harassmentScore = Math.min(harassmentScore + Math.random() * 15, 100);
-  const normalScore = Math.max(100 - hateScore - harassmentScore + Math.random() * 10, 0);
-  
-  // Normalize scores
-  const total = hateScore + harassmentScore + normalScore;
-  const normalizedHate = (hateScore / total) * 100;
-  const normalizedHarassment = (harassmentScore / total) * 100;
-  const normalizedNormal = (normalScore / total) * 100;
-  
-  let classification = 'safe';
-  if (normalizedHate > 60) classification = 'hate_speech';
-  else if (normalizedHate > 30 || normalizedHarassment > 40) classification = 'flagged';
-  
-  return {
-    classification,
-    hateScore: normalizedHate,
-    harassmentScore: normalizedHarassment,
-    normalScore: normalizedNormal,
-    neutralizedText: normalizedHate > 30 ? 
-      "This content has been identified as potentially inappropriate and has been neutralized." : 
-      content,
-    isHateSpeech: normalizedHate > 60
-  };
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -85,16 +123,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         harassmentScore: mlResult.harassmentScore,
         normalScore: mlResult.normalScore,
         isAutoHidden: mlResult.classification === 'hate_speech',
-        confidenceScore: mlResult.hateScore
+        confidenceScore: mlResult.confidenceScore
       };
       
       const analysis = await storage.createContentAnalysis(analysisData);
       
-      // Add neutralized text to response
+      // Add neutralized text and probabilities to response
       const response = {
         ...analysis,
+        classification: mlResult.classification, // Ensure ML result classification is preserved
+        hateScore: mlResult.hateScore, // Ensure hate score is preserved
         neutralizedText: mlResult.neutralizedText,
-        isHateSpeech: mlResult.isHateSpeech
+        isHateSpeech: mlResult.isHateSpeech,
+        probabilities: mlResult.probabilities,
+        analysis: {
+          ...mlResult.analysis,
+          // Enhanced features from new ML model
+          lstm_contribution: mlResult.analysis.lstm_contribution || 0,
+          fuzzy_confidence: mlResult.analysis.fuzzy_confidence || 0,
+          language_detected: mlResult.analysis.language_detected || 'unknown',
+          processed_text: mlResult.analysis.processed_text || '',
+          detection_details: mlResult.analysis.detection_details || [],
+          detection_breakdown: mlResult.analysis.detection_breakdown || {
+            exact_matches: 0,
+            fuzzy_matches: 0,
+            variation_matches: 0,
+            lstm_seems_stuck: false
+          },
+          modelsUsed: {
+            ...mlResult.analysis.modelsUsed,
+            fuzzy_word_matching: true,
+            word_variation_generation: true,
+            enhanced_singlish_detection: true
+          }
+        }
       };
       
       res.json(response);
@@ -119,6 +181,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Analysis not found" });
       }
       res.json(analysis);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Feedback Routes
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const { text, feedback_type, user_annotation, original_prediction, confidence } = req.body;
+      
+      if (!text || !feedback_type) {
+        return res.status(400).json({ message: "Text and feedback_type are required" });
+      }
+      
+      // Forward to ML backend
+      const mlResponse = await fetch('http://localhost:5003/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          feedback_type,
+          user_annotation,
+          original_prediction,
+          confidence
+        }),
+      });
+      
+      if (!mlResponse.ok) {
+        throw new Error(`ML Backend error: ${mlResponse.status}`);
+      }
+      
+      const result = await mlResponse.json();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/feedback/stats", async (req, res) => {
+    try {
+      const mlResponse = await fetch('http://localhost:5003/feedback/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!mlResponse.ok) {
+        throw new Error(`ML Backend error: ${mlResponse.status}`);
+      }
+      
+      const result = await mlResponse.json();
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -198,40 +315,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ML Backend Routes
   app.post("/api/ml/train", async (req, res) => {
     try {
-      // Proxy training request to Python ML backend
-      const response = await fetch('http://localhost:5001/train', {
+      console.log('Training request received');
+      
+      // Check if ML backend is available
+      const healthResponse = await fetch('http://localhost:5003/health');
+      if (!healthResponse.ok) {
+        throw new Error('ML Backend not available');
+      }
+      
+      // Determine action based on request body
+      const requestBody = req.body;
+      let trainingPayload;
+      
+      if (requestBody.action === 'train_with_uploaded_data') {
+        // Handle uploaded file
+        trainingPayload = {
+          action: 'train_with_uploaded_data',
+          filename: requestBody.filename,
+          content: requestBody.content
+        };
+      } else {
+        // Use existing dataset
+        trainingPayload = {
+          action: 'train_with_existing_dataset',
+          dataset_path: 'DataSets/sinhala-hate-speech-dataset.csv'
+        };
+      }
+      
+      // Trigger training
+      const response = await fetch('http://localhost:5003/train', {
         method: 'POST',
-        headers: req.headers,
-        body: req.body,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(trainingPayload),
       });
       
       if (!response.ok) {
-        throw new Error(`ML Backend training failed: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`ML Backend training failed: ${response.status} - ${errorText}`);
       }
       
       const result = await response.json();
-      res.json(result);
+      res.json({
+        success: true,
+        message: 'Model training completed successfully',
+        result: result
+      });
     } catch (error: any) {
       console.error('ML Training error:', error);
       res.status(500).json({ 
         success: false, 
-        error: 'ML training service unavailable. Please ensure the Python ML backend is running on port 5001.' 
+        error: error.message || 'ML training service unavailable. Please ensure the Python ML backend is running on port 5001.' 
       });
     }
   });
 
   app.get("/api/ml/health", async (req, res) => {
     try {
-      const response = await fetch('http://localhost:5001/health');
+      const response = await fetch('http://localhost:5003/health');
       if (!response.ok) {
         throw new Error(`ML Backend health check failed: ${response.status}`);
       }
       const result = await response.json();
-      res.json(result);
+      
+      // Transform the response to match frontend expectations
+      const transformedResult = {
+        status: result.status === 'healthy' ? 'healthy' : 'unavailable',
+        message: result.message,
+        detector_loaded: result.detector_loaded,
+        language: result.language,
+        models_supported: result.models_supported
+      };
+      
+      res.json(transformedResult);
     } catch (error: any) {
       res.status(503).json({ 
         status: 'unavailable',
         message: 'Python ML backend not running. Start it with: python ml_backend/app.py' 
+      });
+    }
+  });
+
+  // Model Status Route
+  app.get("/api/ml/models/status", async (req, res) => {
+    try {
+      const response = await fetch('http://localhost:5003/models/status');
+      if (!response.ok) {
+        throw new Error(`ML Backend model status check failed: ${response.status}`);
+      }
+      const result = await response.json();
+      
+      // Transform the response to match frontend expectations
+      const transformedResult = {
+        current_model: result.detector_type || 'enhanced_sinhala_specialized',
+        available_models: {
+          LSTM: { 
+            loaded: result.models?.lstm_model?.status === 'loaded' || false,
+            max_words: result.models?.lstm_model?.max_words,
+            max_len: result.models?.lstm_model?.max_len,
+            embedding_dim: result.models?.lstm_model?.embedding_dim
+          },
+          BERT: { 
+            loaded: result.models?.mbert_model?.status === 'loaded' || false,
+            model_name: result.models?.mbert_model?.model_name,
+            num_classes: result.models?.mbert_model?.num_classes,
+            device: result.models?.mbert_model?.device
+          }
+        }
+      };
+      
+      res.json(transformedResult);
+    } catch (error: any) {
+      res.status(503).json({ 
+        current_model: 'none',
+        available_models: {
+          LSTM: { loaded: false },
+          BERT: { loaded: false }
+        },
+        error: 'ML Backend not available'
       });
     }
   });
