@@ -35,7 +35,7 @@ HateGuard/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/HateGuard.git
+   git clone https://github.com/lakshan-sameera/Sinhala-Singlish-hate-speech-detection-with-encoded-variations-.git
    cd HateGuard
    ```
 
@@ -182,4 +182,4 @@ For support, email support@hateguard.com or create an issue in this repository.
 
 ---
 
-**Made with ❤️ for safer online communities** 
+**Made with ❤️ for safer online communities**
