@@ -3,6 +3,7 @@
 A comprehensive hate speech detection system specifically designed for Singlish (Sinhala-English mixed language) content, featuring advanced LSTM models and intelligent word variation detection.
 
 Disclaimer: This model and the application only use for academic reseach purposes and may contatin a hateful words in the datsets or in codes.
+HateGuard is an end-to-end system for detecting hate speech in Sinhala and Singlish text. It combines a Bidirectional LSTM model (binary NOT/OFF) with a robust rule-based layer for explicit hate words and obfuscated variants. A feedback mechanism lets users report missed cases, which are learned immediately via persistent word storage.
 
 ## 🌟 Features
 
