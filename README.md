@@ -2,6 +2,8 @@
 
 A comprehensive hate speech detection system specifically designed for Singlish (Sinhala-English mixed language) content, featuring advanced LSTM models and intelligent word variation detection.
 
+Disclaimer: This model and the application only use for academic reseach purposes and may contatin a hateful words in the datsets or in codes.
+
 ## 🌟 Features
 
 - **🤖 Advanced LSTM Model**: Bidirectional LSTM with 93%+ accuracy
